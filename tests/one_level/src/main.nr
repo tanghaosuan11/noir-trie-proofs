@@ -1,4 +1,4 @@
-use dep::trie::{
+use trie::{
     const::{MAX_TRIE_NODE_LENGTH, KEY_LENGTH},
     node::{resolve_nibble32, key_as_nibbles}
 };

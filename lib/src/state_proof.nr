@@ -4,13 +4,13 @@ use crate::{
     utils::{memcpy, byte_value, assert_subarray},
     node::{key_as_nibbles, verify_internal_node, verify_node_hash, resolve2}
 };
-use dep::std::hash::keccak256;
+use keccak::keccak256;
 use crate::rlp;
 
 /// Type alias for storage proofs. Assumes value is left-padded with zeros.
-type StateProof<PROOF_LEN> = TrieProof<20, PROOF_LEN, MAX_ACCOUNT_STATE_LENGTH>;
+pub type StateProof<let PROOF_LEN: u32> = TrieProof<20, PROOF_LEN, MAX_ACCOUNT_STATE_LENGTH>;
 
-impl<PROOF_LEN, MAX_VALUE_LEN> TrieProof<20, PROOF_LEN, MAX_VALUE_LEN>
+impl<let PROOF_LEN: u32, let MAX_VALUE_LEN: u32> TrieProof<20, PROOF_LEN, MAX_VALUE_LEN>
 {
     /// Ethereum state proof verifier. Returns true if all constraints are satisfied.
     ///
@@ -22,9 +22,9 @@ impl<PROOF_LEN, MAX_VALUE_LEN> TrieProof<20, PROOF_LEN, MAX_VALUE_LEN>
         state_root: [u8; KEY_LENGTH] // Hash of root, i.e. first, node.
     ) -> bool
     {
-        assert((PROOF_LEN as u32) % (MAX_TRIE_NODE_LENGTH as u32) == 0); // Check that N is a multiple of MAX_TRIE_NODE_LENGTH
+        assert(PROOF_LEN % MAX_TRIE_NODE_LENGTH == 0); // Check that N is a multiple of MAX_TRIE_NODE_LENGTH
 
-        let key = keccak256(self.key, 20); // The path is traced out by the hashed key
+        let key = keccak256(self.key, 20u32); // The path is traced out by the hashed key
         
         let key_nibbles: [u8; NIBBLE_LENGTH] = key_as_nibbles(key);
         
@@ -36,12 +36,12 @@ impl<PROOF_LEN, MAX_VALUE_LEN> TrieProof<20, PROOF_LEN, MAX_VALUE_LEN>
 
         let mut extracted_hash = state_root;
 
-        for i in 0..(path.len() as u64 / MAX_TRIE_NODE_LENGTH - 1)
+        for i in 0..(path.len() / MAX_TRIE_NODE_LENGTH - 1)
         {
-            verify_internal_node(&mut extracted_hash, &mut key_ptr, key_nibbles, path, depth, i);
+            verify_internal_node(&mut extracted_hash, &mut key_ptr, key_nibbles, path, depth, i as u64);
         }
 
-        self.verify_state_leaf_node(extracted_hash, key.len(), key_ptr, key_nibbles);
+        self.verify_state_leaf_node(extracted_hash, key.len() as u64, key_ptr, key_nibbles);
         
         true
     }
@@ -63,7 +63,7 @@ impl<PROOF_LEN, MAX_VALUE_LEN> TrieProof<20, PROOF_LEN, MAX_VALUE_LEN>
         
         let mut leaf_node = [0; MAX_TRIE_NODE_LENGTH];
         // Treat final node as the preceding nodes...
-        memcpy(&mut leaf_node, self.proof, (self.depth - 1) * MAX_TRIE_NODE_LENGTH);
+        memcpy(&mut leaf_node, self.proof, (self.depth - 1) * (MAX_TRIE_NODE_LENGTH as u64));
 
         assert(verify_node_hash(leaf_node, extracted_hash), "State root: leaf node hash does not match the hash extracted from the preceding node");
 
